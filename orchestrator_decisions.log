@@ -1,0 +1,85 @@
+{"task_id": "273052f2", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["FILESYSTEM_MODIFY"], "violations": []}
+{"task_id": "ef21fec0", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["FILESYSTEM_MODIFY"], "violations": []}
+{"task_id": "70516eb4", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["FILESYSTEM_MODIFY"], "violations": []}
+{"task_id": "7e61e9c1", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "64a73cea", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "ff6b5413", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "51861186", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "d2e88bd6", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "06c4de13", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "1c0b5397", "approved": true, "reason": "Y", "escalation": "none", "tags": ["API_REQUIRED"], "violations": []}
+{"task_id": "8d3e6102", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "4762b033", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "c37a9079", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "f447c435", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "9088ec70", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "22ef8a34", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["FILESYSTEM_MODIFY"], "violations": []}
+{"task_id": "6e0925da", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "4451c144", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "96e16e57", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "cea012db", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "critical", "tags": [], "violations": ["C001"]}
+{"task_id": "4904a7a6", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "critical", "tags": ["API_REQUIRED"], "violations": ["C001"]}
+{"task_id": "92f07c61", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "critical", "tags": ["API_REQUIRED"], "violations": ["C001"]}
+{"task_id": "df0d4d90", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "critical", "tags": ["API_REQUIRED"], "violations": ["C001"]}
+{"task_id": "7be281a1", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "critical", "tags": ["API_REQUIRED"], "violations": ["C001"]}
+{"task_id": "775c0781", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "critical", "tags": ["API_REQUIRED"], "violations": ["C001"]}
+{"task_id": "8f034cf2", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "critical", "tags": ["API_REQUIRED"], "violations": ["C001"]}
+{"task_id": "619a9d81", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["FILESYSTEM_MODIFY", "API_REQUIRED"], "violations": []}
+{"task_id": "a4f86b36", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "8d1e73e8", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "93d1fb0b", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "44a1582e", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "0de67f58", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]"], "violations": []}
+{"task_id": "797da99b", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "673f499f", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "a1a192d8", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "0724a52d", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "b7c675de", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "5b21cdcf", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "6af60f4a", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "68ddfe59", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]", "[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "89b496bc", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "37a779e3", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]"], "violations": []}
+{"task_id": "4d48a977", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]"], "violations": []}
+{"task_id": "276ffef0", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "12b51914", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "c1c35e34", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "ac9daa08", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "87cef79f", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]", "[API_REQUIRED]"], "violations": []}
+{"task_id": "5922c68b", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]"], "violations": []}
+{"task_id": "b9cd74f0", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]", "[API_REQUIRED]"], "violations": []}
+{"task_id": "19fe4345", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]", "[API_REQUIRED]"], "violations": []}
+{"task_id": "b60386b4", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]", "[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "15f40e1c", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "6e5df54b", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "232de59b", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "85247e8d", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "a8290385", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "d5ab0041", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "cff335ba", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]", "[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "024c5e4e", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]", "[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "d764fa2f", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]", "[API_REQUIRED]"], "violations": []}
+{"task_id": "e1a2bcca", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]", "[API_REQUIRED]"], "violations": []}
+{"task_id": "84dd1162", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "2acd44b2", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "4ac39583", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "ee1108b6", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "3f3d29e7", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "0e609c84", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "08da6a29", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "0e91a2ed", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "5276c27d", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "4989b6c7", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "e168edc1", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "a6f9eb5c", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "697e30fa", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "4c1cdfb7", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]"], "violations": []}
+{"task_id": "0c2e325d", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "025fbe36", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "3bf68083", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]"], "violations": []}
+{"task_id": "64169a2c", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]", "[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "c5ac520b", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": ["[API_REQUIRED]", "[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "5b8331d6", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": [], "violations": []}
+{"task_id": "23ceefd9", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "5011589f", "approved": true, "reason": "User approved via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]"], "violations": []}
+{"task_id": "7b58c16c", "approved": false, "reason": "User denied via Navigator Gateway", "escalation": "none", "tags": ["[FILESYSTEM_MODIFY]"], "violations": []}

@@ -1,0 +1,190 @@
+system:
+  name: "Constitutional Orchestrator"
+  version: "3.0.0"
+
+# ---------------------------------------------------------------------------
+# Model selector
+# ---------------------------------------------------------------------------
+# Change the model name here to switch ALL agents at once.
+# Any model available in your local Ollama installation is valid.
+#
+# Popular options (install with: ollama pull <name>):
+#   qwen2.5:7b          — fast, great code generation (default)
+#   qwen2.5:14b         — slower, more accurate for complex tasks
+#   deepseek-coder:6.7b — specialised for code tasks
+#   deepseek-coder:33b  — best code quality, needs ~20 GB RAM
+#   llama3:8b           — general purpose, good instruction following
+#   llama3:70b          — very high quality, needs ~40 GB RAM
+#   mistral:7b          — fast, good for structured output
+#   phi3:mini           — tiny (3.8B), good on low-RAM machines
+#   phi3:medium         — balanced quality/speed
+#   codellama:7b        — Meta's code-focused model
+#   codellama:13b       — larger code model
+#
+# You can also set per-agent overrides in the weaver / constitution sections
+# below — the override takes precedence over the global default.
+#
+# To switch to a different model at runtime:
+#   python run_orchestrator.py my_config.yaml
+# where my_config.yaml has a different model_default value.
+
+model_default: "qwen2.5:7b"
+
+# ---------------------------------------------------------------------------
+# Weaver (planning agent)
+# ---------------------------------------------------------------------------
+weaver:
+  model: "qwen2.5:7b"   # override model_default for this agent (optional)
+  temperature: 0.2
+  max_tokens: 4096
+  system_prompt: |
+    You are the Weaver, a specialized planning agent. Your role is strictly to analyze tasks and produce step-by-step execution plans with drafted code.
+
+    RULES:
+    1. You do NOT execute code. You only plan and draft.
+    2. Every plan must include explicit file paths, dependencies, and expected outputs.
+    3. Code drafts should be complete, commented, and ready for review.
+    4. If a task requires external API calls, mark it with [API_REQUIRED].
+    5. If a task modifies existing files, mark it with [FILESYSTEM_MODIFY].
+    6. If a task requires root privileges, mark it with [ROOT_REQUIRED].
+    7. Always prefer safe, local operations over network calls.
+    8. Prefer Python for automation scripts.
+    9. CRITICAL: Each code block must be self-contained. Do not write Python code that expects other steps to create files. If multiple steps are needed, Python code should execute immediately (not define functions for later bash calls).
+    10. NEW ABILITY: You have access to the user's local codebase mounted at `/codebase`. If asked to read, analyze, or refactor existing code, use `/codebase` as your target directory. If writing to or modifying `/codebase`, you MUST include the [FILESYSTEM_MODIFY] tag.
+    11. For file refactors, generate exactly one Python code block that runs end-to-end. Do NOT emit separate install/analyze/refactor blocks.
+    12. Do NOT use placeholder paths like /path/to/...; always use explicit paths provided by the user.
+    13. Prefer stdlib-only refactors. Do NOT pip install formatters at runtime. If optional tools are unavailable, fall back to safe text/AST edits and keep behavior unchanged.
+    14. Before writing, validate file existence and print a clear message if missing. Never reference undefined variables.
+    15. Every Python script must include all required imports at the top (`import os`, `from pathlib import Path`, etc.) and must run as-is with no undefined names.
+    16. Do NOT use or import `autopep8`, `black`, or other external formatters unless the user explicitly asks for them.
+    17. Only include `[API_REQUIRED]` when the code performs an actual network request.
+    18. Avoid multiline f-strings in generated Python. Build output text using intermediate variables and `"\n".join(...)`, then write the final string variable to file.
+
+# ---------------------------------------------------------------------------
+# Constitution (safety evaluator)
+# ---------------------------------------------------------------------------
+constitution:
+  model: "qwen2.5:7b"   # can differ from weaver (e.g. a faster model for safety checks)
+  temperature: 0.0
+  max_tokens: 2048
+
+  rules:
+    - id: "C001"
+      name: "Network Restriction"
+      description: "Code must not make unauthorized network requests"
+      patterns:
+        - "requests\\.get"
+        - "requests\\.post"
+        - "urllib\\.request"
+        - "socket\\."
+        - "http\\.client"
+        - "ftp\\."
+        - "telnetlib"
+      severity: "critical"
+      exception_tag: "[API_REQUIRED]"
+
+    - id: "C002"
+      name: "File System Safety"
+      description: "Code must not modify root or system-critical files"
+      patterns:
+        - "open\\(['\"/]etc/"
+        - "open\\(['\"/]usr/"
+        - "open\\(['\"/]bin/"
+        - "open\\(['\"/]sbin/"
+        - "open\\(['\"/]System/"
+        - "os\\.system\\("
+        - "subprocess\\.call\\("
+        - "subprocess\\.run\\("
+        - "subprocess\\.Popen\\("
+      severity: "critical"
+      exception_tag: "[FILESYSTEM_MODIFY]"
+
+    - id: "C003"
+      name: "Infinite Loop Prevention"
+      description: "Code must not contain unbounded loops"
+      patterns:
+        - "while True:"
+        - "while 1:"
+        - "for.*in itertools\\.count"
+        - "while.*:.*pass"
+      severity: "high"
+      exception_tag: "[LOOP_REQUIRED]"
+
+    - id: "C004"
+      name: "Privilege Escalation"
+      description: "Code must not attempt to gain root privileges"
+      patterns:
+        - "sudo "
+        - "os\\.setuid"
+        - "os\\.setgid"
+        - "os\\.seteuid"
+        - "chmod.*777"
+        - "chmod.*4755"
+      severity: "critical"
+      exception_tag: "[ROOT_REQUIRED]"
+
+    - id: "C005"
+      name: "Data Exfiltration"
+      description: "Code must not attempt to read and transmit sensitive data"
+      patterns:
+        - "open\\(.*\\.ssh"
+        - "open\\(.*\\.env"
+        - "open\\(.*id_rsa"
+        - "open\\(.*password"
+        - "open\\(.*secret"
+        - "keychain"
+        - "Keychain"
+      severity: "critical"
+
+    - id: "C006"
+      name: "Resource Exhaustion"
+      description: "Code must not consume unbounded resources"
+      patterns:
+        - "fork\\(\\)"
+        - "os\\.fork"
+        - "multiprocessing\\.Process.*while"
+        - "threading\\.Thread.*while"
+      severity: "high"
+
+# ---------------------------------------------------------------------------
+# Sandbox (Docker execution)
+# ---------------------------------------------------------------------------
+sandbox:
+  image: "constitutional-sandbox"
+  timeout_seconds: 30
+  memory_limit: "512m"
+  cpu_limit: "1.0"
+  network_mode: "bridge"    # used when [API_REQUIRED] tag is present
+  read_only_rootfs: false
+  allowed_directories:
+    - "/workspace"
+    - "/codebase"
+    - "/tmp"
+  blocked_syscalls:
+    - "CAP_NET_ADMIN"
+    - "CAP_SYS_ADMIN"
+    - "CAP_SYS_PTRACE"
+
+# ---------------------------------------------------------------------------
+# Navigator (human approval gateway)
+# ---------------------------------------------------------------------------
+navigator:
+  auto_approve_safe: false
+  categories_requiring_approval:
+    - "[API_REQUIRED]"
+    - "[FILESYSTEM_MODIFY]"
+    - "[ROOT_REQUIRED]"
+  log_file: "orchestrator_decisions.log"
+
+# ---------------------------------------------------------------------------
+# RAG / vector memory (optional — fully offline)
+# ---------------------------------------------------------------------------
+# Requires:  pip install sentence-transformers chromadb
+# The model (all-MiniLM-L6-v2, ~80 MB) is downloaded once on first use
+# and then runs entirely offline.
+rag:
+  enabled: true
+  backend: "vector"              # "vector" (sentence-transformers + Chroma) or "keyword" (Neo4j only)
+  chroma_path: ".chroma_store"   # on-disk path for the persistent vector store
+  embedding_model: "all-MiniLM-L6-v2"
+  top_k: 3                       # number of similar past tasks to inject into prompts

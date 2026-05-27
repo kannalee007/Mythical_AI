@@ -1,0 +1,38 @@
+services:
+  neo4j:
+    image: neo4j:5.15.0-community
+    container_name: neo4j-local
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    environment:
+      - NEO4J_dbms_memory_heap_max__size=256m
+      - NEO4J_dbms_memory_heap_initial__size=256m
+      - NEO4J_dbms_memory_pagecache_size=128m
+      - NEO4J_dbms_memory_off__heap_max__size=128m
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/plugins
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/7687'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:

@@ -1,0 +1,20 @@
+Functions in weaver:
+['main']
+Functions in persistence:
+[]
+Functions in __init__:
+[]
+Functions in sandbox:
+[]
+Functions in navigator:
+[]
+Functions in utils:
+['load_config', 'query_ollama', 'extract_code_blocks', 'scan_for_violations', 'write_file_safe', 'log_decision', 'check_ollama']
+Functions in custom_rules:
+['create_example_custom_rules']
+Functions in rag:
+['augment_weaver_prompt']
+Functions in constitution:
+[]
+Functions in code_analyzer:
+['analyze_code_quality']

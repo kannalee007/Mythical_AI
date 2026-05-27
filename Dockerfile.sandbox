@@ -1,0 +1,41 @@
+FROM python:3.11-slim
+
+# Create non-root user
+RUN groupadd -r worker && useradd -r -g worker -d /workspace worker
+
+# Install minimal system packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Pre-install a broad scientific Python / data science / ML / viz stack
+RUN pip install --no-cache-dir \
+    numpy \
+    pandas \
+    matplotlib \
+    scipy \
+    seaborn \
+    plotly \
+    scikit-learn \
+    statsmodels \
+    sympy \
+    networkx \
+    pillow \
+    requests \
+    openpyxl \
+    tabulate \
+    tqdm \
+    pyyaml \
+    jinja2 \
+    psutil \
+    autopep8 \
+    black
+
+# Create workspace and set permissions
+RUN mkdir -p /workspace && chown worker:worker /workspace
+
+WORKDIR /workspace
+USER worker
+
+# Default: just keep container alive for command override
+CMD ["python3", "-c", "print('Sandbox ready')"]

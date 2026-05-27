@@ -1,0 +1,9 @@
+.venv/
+.venv-1/
+__pycache__/
+*.pyc
+.DS_Store
+.chroma_store/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
