@@ -1,112 +1,101 @@
-# Mythical_AI
+# Mythical AI — Constitutional Orchestrator
 
-Constitutional Orchestrator is a local, agentic orchestration pipeline for macOS that distributes tasks across specialized nodes instead of relying on a single monolithic AI.
+A local, privacy-first multi-agent AI orchestration system that enforces constitutional safety principles before executing any task.
 
-A local, agentic orchestration pipeline for macOS that distributes tasks across specialized nodes instead of relying on a single monolithic AI.
+## What is Mythical AI?
 
-## Enterprise Edition
-
-See [ENTERPRISE_EDITION.md](ENTERPRISE_EDITION.md) for the enterprise product vision, roadmap, and positioning.
+Mythical AI is a **Constitutional AI system** that distributes tasks across specialized nodes with safety guardrails, compliance checks, and human-in-the-loop approval — all running locally with no data leaving your machine.
 
 ## Architecture
 
-| Node | Role | Model / Tool |
-|------|------|-------------|
-| **The Weaver** | Primary planner (Windsurf-facing agent) | Ollama (model from config.yaml; default qwen2.5:7b) |
-| **The Constitution Node** | Safety evaluator with hard-coded rules | Ollama (model from config.yaml; default qwen2.5:7b) |
-| **The Regulatory Node** | Compliance-focused safety scan | Pattern rules (config.yaml) |
-| **The Sandboxed Garden** | Isolated execution environment | Docker container |
-| **The Navigator Gateway** | Human-in-the-loop approval | Terminal prompt |
+| Node | Role |
+|------|------|
+| **Weaver** | Primary planner — generates execution plans and code |
+| **Constitution Node** | Safety evaluator — two-phase pattern + LLM evaluation |
+| **Regulatory Node** | Compliance scanner — PII detection, audit requirements |
+| **Navigator Gateway** | Human-in-the-loop approval gate |
+| **Sandboxed Garden** | Docker-isolated code execution |
+| **Persistence Layer** | Neo4j knowledge graph + audit trail |
 
-## Flow
+## Original Research Contributions
 
-1. You submit a high-level task to the Weaver
-2. The Weaver drafts a step-by-step plan with code
-3. The Constitution Node pattern-scans + LLM-evaluates the plan for safety violations
-4. The Regulatory Node scans for compliance risks
-5. If flagged, the plan bounces back with errors
-6. If approved, the Navigator Gateway checks for sensitive operations (API calls, file modifications)
-7. If human approval is required, you get a terminal prompt: `[System Change Requested. Review Plan Y/N?]`
-8. Once fully cleared, code executes inside a Docker sandbox (no network, read-only rootfs, memory limits)
+### Constitutional Conflict Detection
+During testing, we discovered that constitutional principles can produce contradictory verdicts on ambiguous requests — for example, Principle 1 (Partial Compliance) vs Principle 3 (Authority Resistance) for security research queries. This is documented as **Constitutional Conflict**.
 
-## Prerequisites
+### Weighted Constitutional Resolution (WCR)
+A novel framework designed to resolve constitutional conflicts using three mechanisms:
+- **Context Detection** — classifies requests as malicious, ambiguous, or educational
+- **Weighted Scoring** — applies safety/helpfulness weights based on context
+- **Response Amalgamation** — blends principles instead of binary block/allow
 
-- macOS (M4 MacBook optimized)
-- [Ollama](https://ollama.com/download/mac) installed and running
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-- Python 3.11+
+| Context | Safety Weight | Helpfulness Weight |
+|---------|--------------|-------------------|
+| Malicious | 1.0 | 0.0 |
+| Ambiguous | 0.8 | 0.2 |
+| Educational | 0.4 | 0.6 |
+
+## Key Features
+
+- **8 Constitutional Principles** with priority ordering
+- **Two-phase safety evaluation** — fast regex + LLM deep reasoning
+- **Docker sandboxed execution** — no network, resource limits, 30s timeout
+- **Neo4j audit trail** — immutable graph-based logging
+- **REST API + WebSocket streaming** — real-time task progress
+- **Multi-tenant isolation** — separate storage per tenant
+- **Vector RAG memory** — semantic context retrieval (offline)
+- **Human-in-the-loop** — approval required for all system changes
+
+## Tech Stack
+
+- **Python 3.11+**
+- **Ollama** — local LLM inference (qwen3.5:9b-mlx)
+- **LangChain** — pipeline orchestration
+- **Docker** — sandboxed execution
+- **Neo4j** — knowledge graph persistence
+- **FastAPI** — REST API
+- **ChromaDB** — vector embeddings
+- **sentence-transformers** — offline embeddings
 
 ## Quick Start
 
 ```bash
-# 1. Clone or navigate to the project
-cd mythical_ai
+# 1. Install dependencies
+pip install -r requirements.txt
 
-# 2. Run the setup script
-bash scripts/setup.sh
+# 2. Start Ollama and pull models
+ollama pull qwen3.5:9b-mlx
+ollama pull qwen3.5:4b
 
-# 3. Optional: run health checks
-python run_orchestrator.py --health
+# 3. Optional: Start Neo4j
+docker compose up -d neo4j
 
-# 4. Launch interactive mode
+# 4. Run interactive mode
 python run_orchestrator.py
-
-# 5. Optional: run the audit dashboard
-python scripts/run_dashboard.py
-
-# 4. Or pass a one-shot task
-python run_orchestrator.py "Generate a CSV with 100 random numbers and compute their mean"
 ```
 
-For fully local deployments, see [SELF_HOSTED.md](SELF_HOSTED.md).
+## Test Cases
 
-## Interactive Commands
+## Hardware Requirements
 
-Inside the REPL:
-- Type any natural language task
-- `health` — run diagnostics on all nodes
-- `quit` — exit
+- macOS (optimized for Apple Silicon M-series)
+- 16GB RAM minimum
+- Ollama installed
+- Docker Desktop installed
 
-## Configuration
+## Known Limitations
 
-Edit `config.yaml` to customize:
-- Models for Weaver and Constitution Node
-- Constitutional rules and severity levels
-- Sandbox resource limits (memory, CPU, timeout)
-- Auto-approval behavior for the Navigator Gateway
-- Audit event logging
-- Regulatory compliance rules
+- C007 pattern scan occasionally fires on edge cases — WCR provides correction layer
+- RL-CAI training loop not yet implemented (SL-CAI complete)
+- Conversational queries require human approval by design
 
-## Safety Defaults
+## Project Status
 
-The system ships with these conservative defaults:
-- **Network disabled by default** in sandbox (bridge only when `[API_REQUIRED]`)
-- **Read-only root filesystem** is configurable (default: false)
-- **Blocked syscalls**: `CAP_NET_ADMIN`, `CAP_SYS_ADMIN`, `CAP_SYS_PTRACE`
-- **Memory limit**: 512 MB per container
-- **Execution timeout**: 30 seconds
-- **Human approval required** for: `[API_REQUIRED]`, `[FILESYSTEM_MODIFY]`, `[ROOT_REQUIRED]`
+- ✅ SL-CAI pipeline complete
+- ✅ Weighted Constitutional Resolution
+- ✅ Constitutional Conflict documented
+- ⏳ RL-CAI reward model (in progress)
 
-## Project Structure
+## Author
 
-```
-.
-├── config.yaml              # All node configuration
-├── Dockerfile.sandbox       # Minimal isolated execution image
-├── requirements.txt         # Python dependencies
-├── run_orchestrator.py      # CLI entry point
-├── dashboard/               # FastAPI audit + compliance UI
-├── scripts/
-│   └── setup.sh             # One-command setup
-└── orchestrator/
-    ├── __init__.py
-    ├── weaver.py            # Main orchestration engine
-    ├── constitution.py      # Safety evaluator node
-    ├── sandbox.py           # Docker execution manager
-    ├── navigator.py         # Human approval gateway
-    └── utils.py             # Shared helpers (Ollama client, scanners)
-```
-
-## License
-
-MIT
+Kaarunya Lakshman Chinthalapudi
+Pre-final year B.Tech AIML — Jain University, Bengaluru
