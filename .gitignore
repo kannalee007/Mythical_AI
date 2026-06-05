@@ -7,3 +7,23 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.tenants/
+
+# Temporary output files
+output_*.txt
+report.txt
+results.json
+
+# Auto-generated files
+function_index.json
+*.db
+
+# Development notes (keep PROMPTING moved to docs/)
+langgraph_routing_notes.md
+so_probe.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

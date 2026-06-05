@@ -31,14 +31,25 @@ class SandboxedGarden:
     """Manages Docker containers for isolated code execution."""
 
     def __init__(self, config: dict):
-        self.image = config["sandbox"]["image"]
-        self.timeout = config["sandbox"]["timeout_seconds"]
-        self.memory = config["sandbox"]["memory_limit"]
-        self.cpu = config["sandbox"]["cpu_limit"]
-        self.network_mode = config["sandbox"]["network_mode"]
-        self.read_only = config["sandbox"]["read_only_rootfs"]
-        self.allowed_dirs = config["sandbox"]["allowed_directories"]
-        self.blocked_caps = config["sandbox"]["blocked_syscalls"]
+        sandbox_cfg = config.get("sandbox", {})
+        tenancy_cfg = config.get("tenancy", {})
+        self.image = sandbox_cfg["image"]
+        self.timeout = sandbox_cfg["timeout_seconds"]
+        self.memory = sandbox_cfg["memory_limit"]
+        self.cpu = sandbox_cfg["cpu_limit"]
+        self.network_mode = sandbox_cfg["network_mode"]
+        self.read_only = sandbox_cfg["read_only_rootfs"]
+        self.allowed_dirs = sandbox_cfg.get("allowed_directories", [])
+        self.blocked_caps = sandbox_cfg.get("blocked_syscalls", [])
+        self.pids_limit = int(sandbox_cfg.get("pids_limit", 256))
+        self.tmpfs_size = str(sandbox_cfg.get("tmpfs_size", "64m"))
+        self.cap_drop = sandbox_cfg.get("cap_drop") or self.blocked_caps
+        self.run_as_user = sandbox_cfg.get("run_as_user")
+        self.codebase_write_requires_tag = bool(
+            sandbox_cfg.get("codebase_write_requires_tag", True)
+        )
+        self.tenant_storage_mount = tenancy_cfg.get("storage_mount", "/tenant_storage")
+        self.tenant_secrets_mount = tenancy_cfg.get("secrets_mount", "/tenant_secrets")
         self.codebase_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
         self._client = None
 
@@ -99,6 +110,9 @@ class SandboxedGarden:
         input_data: Optional[str] = None,
         work_dir: Optional[str] = None,
         network_enabled: bool = False,
+        codebase_write: bool = False,
+        tenant_storage_dir: Optional[str] = None,
+        tenant_secrets_dir: Optional[str] = None,
     ) -> SandboxResult:
         """Execute code inside an isolated Docker container."""
         self._ensure_image()
@@ -131,7 +145,7 @@ class SandboxedGarden:
 
             # Security configuration
             security_opt = ["no-new-privileges:true"]
-            cap_drop = self.blocked_caps
+            cap_drop = self.cap_drop
 
             # Run the container
             if language == "python":
@@ -149,9 +163,31 @@ class SandboxedGarden:
 
             # Build volume config. We map the target codebase to /codebase
             volumes_dict = {temp_dir: {"bind": "/workspace", "mode": "rw"}}
-            
+
+            if tenant_storage_dir:
+                tenant_storage_dir = os.path.abspath(tenant_storage_dir)
+            if tenant_secrets_dir:
+                tenant_secrets_dir = os.path.abspath(tenant_secrets_dir)
+
             # Map the repository root so /codebase is stable regardless of process cwd.
-            volumes_dict[self.codebase_dir] = {"bind": "/codebase", "mode": "rw"}
+            codebase_mode = "rw" if codebase_write else "ro"
+            volumes_dict[self.codebase_dir] = {"bind": "/codebase", "mode": codebase_mode}
+
+            if tenant_storage_dir:
+                volumes_dict[tenant_storage_dir] = {
+                    "bind": self.tenant_storage_mount,
+                    "mode": "rw",
+                }
+
+            if tenant_secrets_dir:
+                volumes_dict[tenant_secrets_dir] = {
+                    "bind": self.tenant_secrets_mount,
+                    "mode": "ro",
+                }
+
+            tmpfs_mounts = None
+            if self.read_only and self.tmpfs_size:
+                tmpfs_mounts = {"/tmp": f"rw,noexec,nosuid,size={self.tmpfs_size}"}
 
             container = self.client.containers.run(
                 image=self.image,
@@ -163,8 +199,11 @@ class SandboxedGarden:
                 cpu_quota=int(float(self.cpu) * 100000),
                 cpu_period=100000,
                 read_only=self.read_only,
+                tmpfs=tmpfs_mounts,
+                pids_limit=self.pids_limit,
                 security_opt=security_opt,
                 cap_drop=cap_drop,
+                user=self.run_as_user,
                 detach=True,
                 stdout=True,
                 stderr=True,

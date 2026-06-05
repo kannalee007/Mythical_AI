@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+  <h1>Runs</h1>
+  <span class="badge">{{ total_tasks }} total</span>
+</div>
+
+<div class="card">
+  <table class="table">
+    <tr>
+      <th>Task ID</th>
+      <th>Status</th>
+      <th>Request</th>
+      <th>Tags</th>
+      <th>Updated</th>
+    </tr>
+    {% for task in tasks %}
+    <tr>
+      <td><a href="/tasks/{{ task.task_id }}?tenant={{ tenant_id }}">{{ task.task_id }}</a></td>
+      <td class="status {{ task.status }}">{{ task.status }}</td>
+      <td>{{ task.request }}</td>
+      <td>
+        {% for tag in task.tags %}
+          <span class="tag">{{ tag }}</span>
+        {% endfor %}
+      </td>
+      <td>{{ task.updated_at|fmt_ts }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+  <div class="meta">Page {{ page }} of {{ total_pages }}</div>
+  <div style="margin-top: 10px;">
+    {% if page > 1 %}
+      <a href="/tasks?tenant={{ tenant_id }}&page={{ page - 1 }}&page_size={{ page_size }}">Prev</a>
+    {% endif %}
+    {% if page < total_pages %}
+      <a href="/tasks?tenant={{ tenant_id }}&page={{ page + 1 }}&page_size={{ page_size }}" style="margin-left: 12px;">Next</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

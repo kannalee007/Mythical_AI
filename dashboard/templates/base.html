@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mythical AI Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="page">
+    <aside class="sidebar">
+      <div class="brand">Mythical AI</div>
+      <div class="meta">Audit + Compliance</div>
+      <nav class="nav">
+        <a href="/">Overview</a>
+        <a href="/tasks">Runs</a>
+        <a href="/compliance">Compliance</a>
+        <a href="/tenants">Tenants</a>
+      </nav>
+      {% if tenant_id %}
+      <div class="card" style="margin-top: 20px;">
+        <div class="meta">Active Tenant</div>
+        <div class="badge">{{ tenant_id }}</div>
+      </div>
+      {% endif %}
+    </aside>
+    <main class="content">
+      {% block content %}{% endblock %}
+      <div class="footer">Mythical AI Dashboard • Local-only view</div>
+    </main>
+  </div>
+</body>
+</html>

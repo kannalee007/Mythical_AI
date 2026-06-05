@@ -4,12 +4,17 @@
 
 The Constitutional Orchestrator is a multi-agent AI system for safe, policy-guided code execution with human approval gates. This guide covers deployment, configuration, and operational best practices.
 
+For fully local deployments, see [SELF_HOSTED.md](SELF_HOSTED.md).
+
 ## Prerequisites
 
 - **OS**: macOS or Linux
 - **Software**: Docker, Docker Compose, Ollama, Python 3.11+
 - **Hardware**: 4GB+ RAM, 2+ CPU cores
 - **Ollama Models**: qwen2.5:7b (7GB download) or equivalent
+
+Optional: set `HF_TOKEN` to avoid Hugging Face rate limits when VectorRAG downloads embeddings.
+See [.env.example](.env.example).
 
 ## Infrastructure Setup
 
@@ -62,6 +67,107 @@ Weaver> Search StackOverflow for "python asyncio best practices" and save result
 
 ```bash
 echo "Read /codebase/config.yaml and report on database settings." | python run_orchestrator.py
+```
+
+## Audit Logging
+
+The orchestrator writes a JSONL audit stream to `audit_events.log` by default and
+indexes events into `audit_events.sqlite3` for fast dashboard queries.
+When multi-tenant mode is enabled, tenant logs are stored in:
+
+```
+.tenants/<tenant_id>/audit/audit_events.log
+```
+
+Each event includes timestamp, task id, event type, and structured data.
+
+## Dashboard UI (FastAPI + Jinja)
+
+Run the local dashboard to view audit logs, compliance checks, and tenant data:
+
+```bash
+export DASHBOARD_TOKEN="your_token"
+python scripts/run_dashboard.py --host 127.0.0.1 --port 8080
+```
+
+Open http://127.0.0.1:8080 in your browser. You must supply the token via
+`X-Auth-Token` header or `?token=` query string.
+
+## Tamper-Evident Hashing
+
+Each audit event includes a hash chain (`prev_hash` + `hash`). To add an HMAC
+signature, set the key via environment variable:
+
+```bash
+export AUDIT_HMAC_KEY="your_hmac_key"
+```
+
+To require authentication, set a token before running the dashboard:
+
+```bash
+export DASHBOARD_TOKEN="your_token"
+```
+
+Then pass `X-Auth-Token: your_token` as a header or `?token=your_token` in the URL.
+
+## Multi-tenant Mode
+
+Multi-tenant isolation scopes policies, secrets, audit logs, and memory per tenant.
+
+```bash
+# Run as a specific tenant
+python run_orchestrator.py --tenant acme
+
+# Or use an environment variable
+export MYTHICAL_TENANT=acme
+python run_orchestrator.py
+```
+
+Tenant data is stored under `.tenants/<tenant_id>/` with these directories:
+
+- `policy.yaml` for tenant-specific policy overrides
+- `secrets/` for connector secrets (mounted read-only at `/tenant_secrets`)
+- `storage/` for tenant outputs (mounted at `/tenant_storage`)
+- `audit/` for per-tenant approval logs
+- `rag/` for per-tenant VectorRAG memory
+
+## Self-Hosted / Air-Gapped Notes
+
+- The dashboard and audit logs are local-only by default.
+- Avoid external font loading by removing the Google Fonts import in
+  `dashboard/static/style.css` if you need full air-gap compliance.
+- Keep Ollama, Docker, and Neo4j on the same machine or private network.
+
+## Enterprise Connectors
+
+The connector CLI uses tenant-scoped secrets stored under `.tenants/<tenant_id>/secrets/`.
+Each secret file should contain only the token, with permissions set to `600`.
+
+Required secret files:
+
+- `slack_token.txt`
+- `notion_token.txt`
+- `github_token.txt`
+
+Examples:
+
+```bash
+# Slack: post a message
+python scripts/connectors_cli.py --tenant acme slack post-message \
+  --channel "#alerts" \
+  --text "Task completed"
+
+# Notion: create a page
+python scripts/connectors_cli.py --tenant acme notion create-page \
+  --database "<db_id>" \
+  --title "Orchestrator Run" \
+  --content "Summary of execution"
+
+# GitHub: create an issue
+python scripts/connectors_cli.py --tenant acme github create-issue \
+  --repo "owner/repo" \
+  --title "Run failure" \
+  --body "See audit logs for details"
 ```
 
 ## Configuration

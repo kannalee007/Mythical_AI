@@ -20,8 +20,10 @@ class Neo4jPersistence:
         uri: str = "bolt://localhost:7687",
         user: str = "neo4j",
         password: str = "password",
+        tenant_id: Optional[str] = None,
     ):
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
+        self.tenant_id = tenant_id
         self._ensure_schema()
 
     def _ensure_schema(self):
@@ -34,6 +36,7 @@ class Neo4jPersistence:
                 "CREATE CONSTRAINT artifact_path IF NOT EXISTS FOR (a:Artifact) REQUIRE a.path IS UNIQUE",
                 "CREATE CONSTRAINT violation_uid IF NOT EXISTS FOR (v:Violation) REQUIRE v.uid IS UNIQUE",
                 "CREATE CONSTRAINT tag_name IF NOT EXISTS FOR (t:Tag) REQUIRE t.name IS UNIQUE",
+                "CREATE CONSTRAINT tenant_id IF NOT EXISTS FOR (t:Tenant) REQUIRE t.id IS UNIQUE",
             ]
             for cypher in constraints:
                 with suppress(Exception):
@@ -44,6 +47,7 @@ class Neo4jPersistence:
                 "CREATE INDEX task_timestamp IF NOT EXISTS FOR (t:Task) ON (t.timestamp)",
                 "CREATE INDEX task_status IF NOT EXISTS FOR (t:Task) ON (t.status)",
                 "CREATE INDEX codeblock_lang IF NOT EXISTS FOR (c:CodeBlock) ON (c.language)",
+                "CREATE INDEX task_tenant IF NOT EXISTS FOR (t:Task) ON (t.tenant_id)",
             ]
             for cypher in indexes:
                 with suppress(Exception):
@@ -53,7 +57,12 @@ class Neo4jPersistence:
         """Close the Neo4j driver."""
         self.driver.close()
 
-    def persist_task(self, result: "TaskResult", request: str) -> str:
+    def persist_task(
+        self,
+        result: "TaskResult",
+        request: str,
+        tenant_id: Optional[str] = None,
+    ) -> str:
         """
         Persist a complete TaskResult to the knowledge graph.
 
@@ -71,6 +80,7 @@ class Neo4jPersistence:
 
         # Compute plan hash
         plan_hash = hashlib.sha256(result.plan_text.encode()).hexdigest()[:16]
+        resolved_tenant = tenant_id or self.tenant_id or "default"
 
         with self.driver.session() as session:
             # Create Task node
@@ -81,7 +91,10 @@ class Neo4jPersistence:
                     t.timestamp = $timestamp,
                     t.status = $status,
                     t.success = $success,
-                    t.plan_hash = $plan_hash
+                    t.plan_hash = $plan_hash,
+                    t.tenant_id = $tenant_id
+                MERGE (tenant:Tenant {id: $tenant_id})
+                MERGE (t)-[:BELONGS_TO]->(tenant)
                 """,
                 task_id=result.task_id,
                 request=request,
@@ -89,6 +102,7 @@ class Neo4jPersistence:
                 status=status,
                 success=success,
                 plan_hash=plan_hash,
+                tenant_id=resolved_tenant,
             )
 
             # Create Plan node and link
@@ -226,12 +240,14 @@ class Neo4jPersistence:
 
         return result.task_id
 
-    def get_task_by_id(self, task_id: str) -> Optional[dict]:
+    def get_task_by_id(self, task_id: str, tenant_id: Optional[str] = None) -> Optional[dict]:
         """Retrieve a task and its relationships by ID."""
+        resolved_tenant = tenant_id or self.tenant_id
         with self.driver.session() as session:
             result = session.run(
                 """
                 MATCH (t:Task {task_id: $task_id})
+                WHERE $tenant_id IS NULL OR t.tenant_id = $tenant_id
                 OPTIONAL MATCH (t)-[:EXECUTES]->(c:CodeBlock)
                 OPTIONAL MATCH (t)-[:PRODUCES]->(a:Artifact)
                 OPTIONAL MATCH (t)-[:HAS_VIOLATION]->(v:Violation)
@@ -243,6 +259,7 @@ class Neo4jPersistence:
                        collect(DISTINCT tag) as tags
                 """,
                 task_id=task_id,
+                tenant_id=resolved_tenant,
             )
             record = result.single()
             if record:
@@ -255,64 +272,78 @@ class Neo4jPersistence:
                 }
             return None
 
-    def find_tasks_by_tag(self, tag_name: str) -> list[dict]:
+    def find_tasks_by_tag(self, tag_name: str, tenant_id: Optional[str] = None) -> list[dict]:
         """Find all tasks with a specific tag."""
+        resolved_tenant = tenant_id or self.tenant_id
         with self.driver.session() as session:
             result = session.run(
                 """
                 MATCH (t:Task)-[:TAGGED]->(tag:Tag {name: $name})
+                WHERE $tenant_id IS NULL OR t.tenant_id = $tenant_id
                 RETURN t.task_id as task_id, t.request as request, t.timestamp as timestamp, t.status as status
                 ORDER BY t.timestamp DESC
                 """,
                 name=tag_name,
+                tenant_id=resolved_tenant,
             )
             return [dict(record) for record in result]
 
-    def find_failed_tasks(self, limit: int = 10) -> list[dict]:
+    def find_failed_tasks(self, limit: int = 10, tenant_id: Optional[str] = None) -> list[dict]:
         """Find recent failed tasks."""
+        resolved_tenant = tenant_id or self.tenant_id
         with self.driver.session() as session:
             result = session.run(
                 """
                 MATCH (t:Task)
-                WHERE t.success = false OR t.status = 'FAILED'
+                WHERE (t.success = false OR t.status = 'FAILED')
+                  AND ($tenant_id IS NULL OR t.tenant_id = $tenant_id)
                 RETURN t.task_id as task_id, t.request as request, t.timestamp as timestamp, t.exit_code as exit_code
                 ORDER BY t.timestamp DESC
                 LIMIT $limit
                 """,
                 limit=limit,
+                tenant_id=resolved_tenant,
             )
             return [dict(record) for record in result]
 
-    def get_execution_statistics(self) -> dict:
+    def get_execution_statistics(self, tenant_id: Optional[str] = None) -> dict:
         """Get aggregate statistics about task execution."""
+        resolved_tenant = tenant_id or self.tenant_id
         with self.driver.session() as session:
             # Overall counts
             counts = session.run(
                 """
                 MATCH (t:Task)
+                WHERE $tenant_id IS NULL OR t.tenant_id = $tenant_id
                 RETURN count(t) as total,
                        count(CASE WHEN t.success = true THEN 1 END) as successful,
                        count(CASE WHEN t.success = false THEN 1 END) as failed
-                """
+                """,
+                tenant_id=resolved_tenant,
             ).single()
 
             # Violation counts by severity
             violations = session.run(
                 """
                 MATCH (v:Violation)
+                MATCH (t:Task)-[:HAS_VIOLATION]->(v)
+                WHERE $tenant_id IS NULL OR t.tenant_id = $tenant_id
                 RETURN v.severity as severity, count(v) as count
                 ORDER BY count DESC
-                """
+                """,
+                tenant_id=resolved_tenant,
             )
 
             # Most common tags
             tags = session.run(
                 """
                 MATCH (t:Task)-[:TAGGED]->(tag:Tag)
+                WHERE $tenant_id IS NULL OR t.tenant_id = $tenant_id
                 RETURN tag.name as tag, count(t) as count
                 ORDER BY count DESC
                 LIMIT 10
-                """
+                """,
+                tenant_id=resolved_tenant,
             )
 
             return {

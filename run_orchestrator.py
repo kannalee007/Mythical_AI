@@ -12,6 +12,7 @@ Usage:
     python run_orchestrator.py "do X"        # run a single task and exit
     python run_orchestrator.py my.yaml "do X"# custom config + single task
     python run_orchestrator.py --health      # run health checks and exit
+    python run_orchestrator.py --tenant acme  # tenant-scoped execution
 
 Model selection:
     Edit config.yaml -> weaver.model to switch between any locally installed Ollama model.
@@ -20,6 +21,7 @@ Model selection:
 
 import sys
 import os
+from orchestrator.tenancy import TenancyManager
 from orchestrator.utils import console, load_config
 from orchestrator.weaver import WeaverOrchestrator
 
@@ -30,6 +32,7 @@ def main():
     # ------------------------------------------------------------------
     args = sys.argv[1:]
     health_only = False
+    tenant_id = None
     if "--health" in args:
         health_only = True
         args = [a for a in args if a != "--health"]
@@ -37,13 +40,35 @@ def main():
         health_only = True
         args = [a for a in args if a != "health"]
 
+    if "--tenant" in args:
+        idx = args.index("--tenant")
+        if idx + 1 >= len(args):
+            console.print("[bold red]--tenant requires a value[/bold red]")
+            sys.exit(2)
+        tenant_id = args[idx + 1]
+        del args[idx : idx + 2]
+    else:
+        for arg in list(args):
+            if arg.startswith("--tenant="):
+                tenant_id = arg.split("=", 1)[1]
+                args.remove(arg)
+                break
+
     config_path = "config.yaml"
     if args and args[0].endswith(".yaml"):
         config_path = args[0]
         args = args[1:]
 
     config = load_config(config_path)
-    orchestrator = WeaverOrchestrator(config_path)
+    tenancy = TenancyManager(config, tenant_id=tenant_id)
+    if tenancy.enabled:
+        config = tenancy.apply_overrides(config)
+
+    orchestrator = WeaverOrchestrator(
+        config_path,
+        config=config,
+        tenant_context=tenancy.context,
+    )
 
     # ------------------------------------------------------------------
     # Neo4j persistence (optional — disabled by default)
@@ -61,6 +86,7 @@ def main():
                 uri=neo4j_uri,
                 user=neo4j_user,
                 password=neo4j_pass,
+                tenant_id=tenancy.tenant_id if tenancy.enabled else None,
             )
         except Exception:
             console.print("[dim]Neo4j unavailable — continuing without knowledge-graph persistence.[/dim]")
@@ -117,6 +143,7 @@ def main():
                     code=code,
                     success=success,
                     tags=tags,
+                    tenant_id=tenancy.tenant_id if tenancy.enabled else None,
                 )
             except Exception:
                 pass  # never let RAG indexing break the main flow
@@ -131,6 +158,11 @@ def main():
         f"[dim]Model: [bold]{orchestrator.model}[/bold]  "
         f"(change via config.yaml → weaver.model)[/dim]"
     )
+    if tenancy.enabled and tenancy.context:
+        console.print(
+            f"[dim]Tenant: [bold]{tenancy.context.tenant_id}[/bold]  "
+            f"(storage: {tenancy.context.storage_dir})[/dim]"
+        )
 
     # ------------------------------------------------------------------
     # Run

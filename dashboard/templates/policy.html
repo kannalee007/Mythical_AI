@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+  <h1>Tenant Policy</h1>
+  <span class="badge">{{ tenant_id }}</span>
+</div>
+
+<div class="card">
+  {% if policy %}
+    <div class="mono">{{ policy | tojson(indent=2) }}</div>
+  {% else %}
+    <p class="meta">No policy.yaml found for this tenant.</p>
+  {% endif %}
+</div>
+{% endblock %}

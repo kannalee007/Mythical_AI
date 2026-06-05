@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+  <h1>Compliance</h1>
+  <span class="badge">{{ compliance.total_events }} events</span>
+</div>
+
+<div class="grid cols-2">
+  <div class="card">
+    <h2>Severity Breakdown</h2>
+    <table class="table">
+      <tr><th>Severity</th><th>Count</th></tr>
+      {% for severity, count in compliance.violations_by_severity.items() %}
+      <tr>
+        <td>{{ severity }}</td>
+        <td>{{ count }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Signals</h2>
+    <p class="meta">Regulatory checks are logged as audit events and surfaced here for review.</p>
+  </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+  <h2>Recent Regulatory Events</h2>
+  {% for event in events if event.event_type == "regulatory_verdict" %}
+    <div style="margin-bottom: 16px;">
+      <div class="meta">{{ event.timestamp|fmt_ts }} • Task {{ event.task_id }}</div>
+      <div class="mono">{{ event.data | tojson(indent=2) }}</div>
+    </div>
+  {% else %}
+    <p class="meta">No regulatory events found yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+  <h1>Tenants</h1>
+  <span class="badge">{{ logs|length }} logs</span>
+</div>
+
+<div class="card">
+  <table class="table">
+    <tr><th>Tenant</th><th>Audit Log</th><th>Audit Index</th><th>Actions</th></tr>
+    {% for log in logs %}
+    {% set store = stores[loop.index0] %}
+    <tr>
+      <td>{{ log.tenant_id }}</td>
+      <td>{{ log.path }}</td>
+      <td>{{ store.path }}</td>
+      <td>
+        <a href="/tasks?tenant={{ log.tenant_id }}">View Runs</a> |
+        <a href="/compliance?tenant={{ log.tenant_id }}">Compliance</a> |
+        <a href="/policies/{{ log.tenant_id }}">Policy</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

@@ -14,9 +14,9 @@ from orchestrator.persistence import Neo4jPersistence
 console = Console()
 
 
-def show_stats(persistence: Neo4jPersistence):
+def show_stats(persistence: Neo4jPersistence, tenant_id: str | None = None):
     """Show aggregate statistics."""
-    stats = persistence.get_execution_statistics()
+    stats = persistence.get_execution_statistics(tenant_id=tenant_id)
 
     console.rule("[bold]Execution Statistics[/bold]")
 
@@ -44,10 +44,15 @@ def show_stats(persistence: Neo4jPersistence):
             console.print(f"  {t['tag']}: {t['count']} tasks")
 
 
-def show_recent_tasks(persistence: Neo4jPersistence, limit: int = 10, failed_only: bool = False):
+def show_recent_tasks(
+    persistence: Neo4jPersistence,
+    limit: int = 10,
+    failed_only: bool = False,
+    tenant_id: str | None = None,
+):
     """Show recent tasks."""
     if failed_only:
-        tasks = persistence.find_failed_tasks(limit)
+        tasks = persistence.find_failed_tasks(limit, tenant_id=tenant_id)
         title = f"Recent Failed Tasks (last {len(tasks)})"
     else:
         # Query for recent tasks
@@ -55,12 +60,14 @@ def show_recent_tasks(persistence: Neo4jPersistence, limit: int = 10, failed_onl
             result = session.run(
                 """
                 MATCH (t:Task)
+                WHERE $tenant_id IS NULL OR t.tenant_id = $tenant_id
                 RETURN t.task_id as task_id, t.request as request,
                        t.timestamp as timestamp, t.status as status, t.success as success
                 ORDER BY t.timestamp DESC
                 LIMIT $limit
                 """,
                 limit=limit,
+                tenant_id=tenant_id,
             )
             tasks = [dict(record) for record in result]
         title = f"Recent Tasks (last {len(tasks)})"
@@ -84,9 +91,13 @@ def show_recent_tasks(persistence: Neo4jPersistence, limit: int = 10, failed_onl
     console.print(table)
 
 
-def show_task_details(persistence: Neo4jPersistence, task_id: str):
+def show_task_details(
+    persistence: Neo4jPersistence,
+    task_id: str,
+    tenant_id: str | None = None,
+):
     """Show detailed view of a specific task."""
-    task_data = persistence.get_task_by_id(task_id)
+    task_data = persistence.get_task_by_id(task_id, tenant_id=tenant_id)
 
     if not task_data:
         console.print(f"[red]Task {task_id} not found[/red]")
@@ -131,9 +142,9 @@ def show_task_details(persistence: Neo4jPersistence, task_id: str):
     console.print(tree)
 
 
-def find_by_tag(persistence: Neo4jPersistence, tag_name: str):
+def find_by_tag(persistence: Neo4jPersistence, tag_name: str, tenant_id: str | None = None):
     """Find tasks by tag."""
-    tasks = persistence.find_tasks_by_tag(tag_name)
+    tasks = persistence.find_tasks_by_tag(tag_name, tenant_id=tenant_id)
 
     if not tasks:
         console.print(f"[yellow]No tasks found with tag '{tag_name}'[/yellow]")
@@ -216,6 +227,7 @@ Examples:
   python query_graph.py --failed             # Show recent failed tasks
   python query_graph.py --task <task_id>     # Show task details
   python query_graph.py --tag API_REQUIRED   # Find tasks by tag
+    python query_graph.py --stats --tenant acme # Tenant-scoped statistics
   python query_graph.py --shell              # Interactive Cypher shell
         """,
     )
@@ -227,6 +239,7 @@ Examples:
     parser.add_argument("--tag", metavar="NAME", help="Find tasks by tag")
     parser.add_argument("--shell", action="store_true", help="Start interactive Cypher shell")
     parser.add_argument("--limit", type=int, default=10, help="Limit for recent/failed queries")
+    parser.add_argument("--tenant", help="Filter queries to a specific tenant")
     parser.add_argument("--uri", default="bolt://localhost:7687", help="Neo4j URI")
     parser.add_argument("--user", default="neo4j", help="Neo4j username")
     parser.add_argument("--password", default="password", help="Neo4j password")
@@ -242,18 +255,18 @@ Examples:
 
     # Run requested command
     if args.stats:
-        show_stats(persistence)
+        show_stats(persistence, tenant_id=args.tenant)
     elif args.task:
-        show_task_details(persistence, args.task)
+        show_task_details(persistence, args.task, tenant_id=args.tenant)
     elif args.tag:
-        find_by_tag(persistence, args.tag)
+        find_by_tag(persistence, args.tag, tenant_id=args.tenant)
     elif args.failed:
-        show_recent_tasks(persistence, limit=args.limit, failed_only=True)
+        show_recent_tasks(persistence, limit=args.limit, failed_only=True, tenant_id=args.tenant)
     elif args.shell:
         interactive_shell(persistence)
     else:
         # Default: show recent tasks
-        show_recent_tasks(persistence, limit=args.limit)
+        show_recent_tasks(persistence, limit=args.limit, tenant_id=args.tenant)
 
 
 if __name__ == "__main__":

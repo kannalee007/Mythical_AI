@@ -42,6 +42,7 @@ class NavigatorGateway:
             self.auto_approve_safe = bool(navigator_config["auto_approve_safe"])
             self.review_tags = set(navigator_config["categories_requiring_approval"])
             self.log_file = str(navigator_config["log_file"])
+            self.tenant_id = config.get("tenancy", {}).get("active_tenant")
         except KeyError as exc:
             raise ValueError(f"Missing navigator configuration key: {exc.args[0]}") from exc
 
@@ -160,6 +161,7 @@ class NavigatorGateway:
             self.log_file,
             {
                 "task_id": task_id,
+                "tenant_id": self.tenant_id,
                 "approved": approved,
                 "reason": reason,
                 "escalation": escalation,

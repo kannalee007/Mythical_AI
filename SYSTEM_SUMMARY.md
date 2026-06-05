@@ -458,12 +458,14 @@ Weaver> Read config.yaml (wrong - relative path)
 
 ### Planned Features (v3.0)
 
+- [x] Web dashboard for audit + compliance
+- [x] Regulatory compliance node
 - [ ] Web UI for interactive approval
 - [ ] Slack/Email integration for approval notifications
 - [ ] Integration with external LLM providers (OpenAI, Anthropic, Claude)
 - [ ] Automated monitoring and alerting
 - [ ] Cost tracking for API calls and compute
-- [ ] Advanced RAG with vector embeddings (semantic search)
+- [x] Advanced RAG with vector embeddings (semantic search)
 - [ ] Interactive debugging mode
 - [ ] Code profiling and performance analysis
 

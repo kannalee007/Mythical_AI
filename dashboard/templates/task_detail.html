@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+  <h1>Task {{ task.task_id if task else "Unknown" }}</h1>
+  {% if task %}
+  <span class="badge">{{ task.status }}</span>
+  {% endif %}
+</div>
+
+{% if not task %}
+  <div class="card">Task not found in audit log.</div>
+{% else %}
+  <div class="grid cols-2">
+    <div class="card">
+      <h2>Summary</h2>
+      <p><strong>Request:</strong> {{ task.request }}</p>
+      <p><strong>Intent:</strong> {{ task.intent }}</p>
+      <p><strong>Target File:</strong> {{ task.target_file }}</p>
+      <p><strong>Started:</strong> {{ task.started_at|fmt_ts }}</p>
+      <p><strong>Updated:</strong> {{ task.updated_at|fmt_ts }}</p>
+      <p><strong>Artifacts:</strong> {{ task.artifacts|join(", ") }}</p>
+      <p><strong>Blocked Reason:</strong> {{ task.blocked_reason }}</p>
+    </div>
+    <div class="card">
+      <h2>Tags</h2>
+      {% for tag in task.tags %}
+        <span class="tag">{{ tag }}</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 20px;">
+    <h2>Event Stream</h2>
+    {% for event in task_events %}
+      <div style="margin-bottom: 16px;">
+        <div class="meta">{{ event.timestamp|fmt_ts }} • {{ event.event_type }}</div>
+        <div class="mono">{{ event.data | tojson(indent=2) }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="card" style="margin-top: 20px;">
+    <div class="meta">Page {{ event_page }} of {{ total_event_pages }} • {{ total_events }} events</div>
+    <div style="margin-top: 10px;">
+      {% if event_page > 1 %}
+        <a href="/tasks/{{ task.task_id }}?tenant={{ tenant_id }}&page={{ event_page - 1 }}&page_size={{ event_page_size }}">Prev</a>
+      {% endif %}
+      {% if event_page < total_event_pages %}
+        <a href="/tasks/{{ task.task_id }}?tenant={{ tenant_id }}&page={{ event_page + 1 }}&page_size={{ event_page_size }}" style="margin-left: 12px;">Next</a>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

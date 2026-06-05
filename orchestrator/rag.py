@@ -91,6 +91,7 @@ class VectorRAG:
         code: Optional[str],
         success: bool,
         tags: Optional[List[str]] = None,
+        tenant_id: Optional[str] = None,
     ) -> None:
         """Embed and store a completed task in the vector store.
 
@@ -113,6 +114,7 @@ class VectorRAG:
             "success": success,
             "tags": ",".join(tags or []),
             "code": code or "",
+            "tenant_id": tenant_id or "default",
         }
 
         self._collection.upsert(
@@ -245,10 +247,12 @@ class MemoryRetriever:
         if not keywords and not tags:
             return []
 
+        tenant_id = self.persistence.tenant_id
         with self.persistence.driver.session() as session:
             query = """
             MATCH (t:Task)-[:TAGGED]->(tag:Tag)
             WHERE ($success_only = false OR t.success = true)
+              AND ($tenant_id IS NULL OR t.tenant_id = $tenant_id)
             WITH t, tag,
                 SIZE([k IN $keywords WHERE k IN LOWER(t.request)]) as keyword_matches
             WHERE keyword_matches > 0 OR tag.name IN $tags
@@ -268,12 +272,13 @@ class MemoryRetriever:
                 tags=tags,
                 success_only=success_only,
                 limit=limit,
+                tenant_id=tenant_id,
             )
 
             tasks = []
             for record in results:
                 task_id = record["task_id"]
-                task_data = self.persistence.get_task_by_id(task_id)
+                task_data = self.persistence.get_task_by_id(task_id, tenant_id=tenant_id)
                 if task_data:
                     tasks.append({
                         "task_id": task_id,
@@ -289,10 +294,12 @@ class MemoryRetriever:
 
     def find_tasks_by_tag(self, tag_name: str, limit: int = 10) -> List[Dict]:
         """Find all successful tasks with a specific tag."""
+        tenant_id = self.persistence.tenant_id
         with self.persistence.driver.session() as session:
             query = """
             MATCH (t:Task)-[:TAGGED]->(tag:Tag)
             WHERE tag.name = $tag_name AND t.success = true
+              AND ($tenant_id IS NULL OR t.tenant_id = $tenant_id)
             RETURN t.task_id as task_id,
                    t.request as request,
                    t.timestamp as timestamp
@@ -300,11 +307,11 @@ class MemoryRetriever:
             LIMIT $limit
             """
 
-            results = session.run(query, tag_name=tag_name, limit=limit)
+            results = session.run(query, tag_name=tag_name, limit=limit, tenant_id=tenant_id)
             tasks = []
             for record in results:
                 task_id = record["task_id"]
-                task_data = self.persistence.get_task_by_id(task_id)
+                task_data = self.persistence.get_task_by_id(task_id, tenant_id=tenant_id)
                 if task_data:
                     tasks.append({
                         "task_id": task_id,
@@ -433,14 +440,16 @@ class CodeSearcher:
 
     def find_code_by_pattern(self, pattern: str, limit: int = 10) -> List[str]:
         """Find past code blocks matching a regex pattern."""
+        tenant_id = self.persistence.tenant_id
         with self.persistence.driver.session() as session:
             query = """
             MATCH (t:Task)-[:GENERATED_BY]->(cb:CodeBlock)
             WHERE t.success = true
+              AND ($tenant_id IS NULL OR t.tenant_id = $tenant_id)
             RETURN cb.code as code
             LIMIT $limit_raw
             """
-            results = session.run(query, limit_raw=limit * 3)
+            results = session.run(query, limit_raw=limit * 3, tenant_id=tenant_id)
 
             matching_code = []
             for record in results:
@@ -454,23 +463,26 @@ class CodeSearcher:
 
     def get_common_imports(self, tag: Optional[str] = None) -> List[str]:
         """Get most commonly used imports in successful tasks."""
+        tenant_id = self.persistence.tenant_id
         with self.persistence.driver.session() as session:
             if tag:
                 query = """
                 MATCH (t:Task)-[:GENERATED_BY]->(cb:CodeBlock),
                       (t)-[:TAGGED]->(tg:Tag)
                 WHERE tg.name = $tag AND t.success = true
+                  AND ($tenant_id IS NULL OR t.tenant_id = $tenant_id)
                 RETURN cb.code as code
                 """
-                results = session.run(query, tag=tag)
+                results = session.run(query, tag=tag, tenant_id=tenant_id)
             else:
                 query = """
                 MATCH (t:Task)-[:GENERATED_BY]->(cb:CodeBlock)
                 WHERE t.success = true
+                  AND ($tenant_id IS NULL OR t.tenant_id = $tenant_id)
                 RETURN cb.code as code
                 LIMIT 100
                 """
-                results = session.run(query)
+                results = session.run(query, tenant_id=tenant_id)
 
             import_pattern = re.compile(r"^(?:from|import)\s+[\w.]+", re.MULTILINE)
             import_counts: Dict[str, int] = {}

@@ -136,6 +136,12 @@ Tags: [FILESYSTEM_MODIFY]
 | `[FILESYSTEM_MODIFY]` | Writing, deleting, renaming files | Save results, create reports |
 | `[ROOT_REQUIRED]` | Needs `sudo`, `chmod 777`, system commands | System config, install packages |
 
+**Optional Compliance Tag**:
+
+| Tag | Purpose | Example |
+|-----|---------|---------|
+| `[AUDIT_APPROVED]` | Acknowledge compliance exceptions when reviewed | Approved PII export task |
+
 **Usage**:
 ```
 Tags: [API_REQUIRED] [FILESYSTEM_MODIFY]
@@ -322,7 +328,6 @@ If /codebase/results.json contains errors array with > 5 items:
   - Email errors to team (not supported in sandbox - save to file instead)
 Else:
   - Save summary statistics to /codebase/summary.txt
-
 Do not use nested ternary operators in code.
 Tags: [FILESYSTEM_MODIFY]
 ```

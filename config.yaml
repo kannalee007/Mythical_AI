@@ -28,15 +28,16 @@ system:
 #   python run_orchestrator.py my_config.yaml
 # where my_config.yaml has a different model_default value.
 
-model_default: "qwen2.5:7b"
+model_default: "qwen3.5:9b-mlx"
 
 # ---------------------------------------------------------------------------
 # Weaver (planning agent)
 # ---------------------------------------------------------------------------
 weaver:
-  model: "qwen2.5:7b"   # override model_default for this agent (optional)
+  model: "qwen3.5:9b-mlx"   # override model_default for this agent (optional)
   temperature: 0.2
   max_tokens: 4096
+  # CRITICAL: Constitution Node must evaluate BOTH code and intent for harmful content
   system_prompt: |
     You are the Weaver, a specialized planning agent. Your role is strictly to analyze tasks and produce step-by-step execution plans with drafted code.
 
@@ -64,9 +65,9 @@ weaver:
 # Constitution (safety evaluator)
 # ---------------------------------------------------------------------------
 constitution:
-  model: "qwen2.5:7b"   # can differ from weaver (e.g. a faster model for safety checks)
+  model: "qwen3.5:4b"   # can differ from weaver (e.g. a faster model for safety checks)
   temperature: 0.0
-  max_tokens: 2048
+  max_tokens: 512
 
   rules:
     - id: "C001"
@@ -146,6 +147,46 @@ constitution:
         - "threading\\.Thread.*while"
       severity: "high"
 
+    - id: "C007"
+      name: "Harmful Intent Detection"
+      description: "Requests for violent, illegal, or dangerous activities are not permitted"
+      patterns:
+        - "(?i)(how to (kill|murder|bomb|shoot|stab) (people|someone|a person|humans))"
+        - "(?i)(make (a bomb|explosives|chemical weapon|poison gas))"
+        - "(?i)(instructions (to|for) (harm|kill|hurt|murder) (people|someone))"
+        - "(?i)(create.*malware|write.*virus|build.*ransomware)"
+        - "(?i)(child.*abuse|cp|pedophil|sexual.*assault|rape)"
+        - "(?i)(hack (someone|my neighbor|their|his|her) (account|computer|phone|wifi))"
+        - "(?i)(steal (passwords|credentials|data|money) from)"
+      severity: "critical"
+      exception_tag: null
+
+    - id: "C008"
+      name: "Hate Speech and Discrimination"
+      description: "Requests promoting discrimination, hate speech, or harassment are not permitted"
+      patterns:
+        - "(?i)(racist|racial slur|n-word|hateful|discriminat|inferior|genocide)"
+        - "(?i)(harass|bully|mock.*group|demean)"
+      severity: "critical"
+      exception_tag: null
+
+      # Principal Priority Ordering
+  # When principles conflict, higher priority wins
+  # 1 = highest priority (always wins)
+  principle_priority:
+    safety:
+      priority: 1
+      rules: ["C001", "C002", "C004", "C005", "C007", "C008"]
+      description: "Safety always wins over helpfulness"
+    resource:
+      priority: 2
+      rules: ["C003", "C006"]
+      description: "Resource protection"
+    helpfulness:
+      priority: 3
+      rules: []
+      description: "Helpfulness — yields to safety when conflict detected"
+
 # ---------------------------------------------------------------------------
 # Sandbox (Docker execution)
 # ---------------------------------------------------------------------------
@@ -155,11 +196,19 @@ sandbox:
   memory_limit: "512m"
   cpu_limit: "1.0"
   network_mode: "bridge"    # used when [API_REQUIRED] tag is present
-  read_only_rootfs: false
+  read_only_rootfs: true
+  tmpfs_size: "64m"
+  pids_limit: 256
+  cap_drop:
+    - "ALL"
+  run_as_user: "worker"
+  codebase_write_requires_tag: true
   allowed_directories:
     - "/workspace"
     - "/codebase"
     - "/tmp"
+    - "/tenant_storage"
+    - "/tenant_secrets"
   blocked_syscalls:
     - "CAP_NET_ADMIN"
     - "CAP_SYS_ADMIN"
@@ -174,7 +223,72 @@ navigator:
     - "[API_REQUIRED]"
     - "[FILESYSTEM_MODIFY]"
     - "[ROOT_REQUIRED]"
+    - "[REGULATORY_REVIEW]"
   log_file: "orchestrator_decisions.log"
+
+# ---------------------------------------------------------------------------
+# Audit logging (JSONL event stream)
+# ---------------------------------------------------------------------------
+audit:
+  enabled: true
+  log_file: "audit_events.log"
+  include_plan: false
+  max_plan_chars: 2000
+  max_output_chars: 2000
+  hmac_key_env: "AUDIT_HMAC_KEY"
+  hmac_key: ""
+  redact_patterns:
+    - "(?i)(api[_-]?key|token|password)\\s*[:=]\\s*[^\\s'\"]+"
+    - "\\bAKIA[0-9A-Z]{16}\\b"
+  redact_replacement: "[REDACTED]"
+  sqlite:
+    enabled: true
+    path: "audit_events.sqlite3"
+
+# ---------------------------------------------------------------------------
+# Dashboard (FastAPI)
+# ---------------------------------------------------------------------------
+dashboard:
+  auth_token: "CHANGE_ME"    # Required for dashboard access
+  event_limit: 1000          # Max audit events to load per view
+  page_size: 50
+  event_page_size: 200
+
+# ---------------------------------------------------------------------------
+# Regulatory node (compliance-focused safety checks)
+# ---------------------------------------------------------------------------
+regulatory:
+  enabled: true
+  mode: "pattern"          # "pattern" only (default). LLM mode can be added later.
+  require_human_review_on_match: true
+  rules:
+    - id: "R001"
+      name: "PII Logging"
+      description: "Flag potential PII disclosure in logs or outputs"
+      patterns:
+        - "\\b(ssn|social security|credit card|passport)\\b"
+        - "\\b(email|phone number|dob|date of birth)\\b"
+      severity: "high"
+      exception_tag: "[AUDIT_APPROVED]"
+
+    - id: "R002"
+      name: "Hardcoded Secrets"
+      description: "Detect potential secrets committed into code"
+      patterns:
+        - "\\b(api_key|secret|token|password)\\s*="
+        - "\\bAKIA[0-9A-Z]{16}\\b"
+      severity: "critical"
+      exception_tag: "[AUDIT_APPROVED]"
+
+    - id: "R003"
+      name: "Data Export Risk"
+      description: "Detect bulk data export intent"
+      patterns:
+        - "\\bexport\\b"
+        - "\\bdump\\b"
+        - "\\bexfiltrat"
+      severity: "medium"
+      exception_tag: "[AUDIT_APPROVED]"
 
 # ---------------------------------------------------------------------------
 # RAG / vector memory (optional — fully offline)
@@ -188,3 +302,43 @@ rag:
   chroma_path: ".chroma_store"   # on-disk path for the persistent vector store
   embedding_model: "all-MiniLM-L6-v2"
   top_k: 3                       # number of similar past tasks to inject into prompts
+
+# ---------------------------------------------------------------------------
+# Tenancy (multi-tenant isolation)
+# ---------------------------------------------------------------------------
+tenancy:
+  enabled: true
+  default_tenant: "default"
+  base_dir: ".tenants"
+  storage_dirname: "storage"
+  secrets_dirname: "secrets"
+  rag_dirname: "rag"
+  audit_dirname: "audit"
+  policy_filename: "policy.yaml"
+  storage_mount: "/tenant_storage"
+  secrets_mount: "/tenant_secrets"
+
+# ---------------------------------------------------------------------------
+# Connectors (Slack / Notion / GitHub)
+# ---------------------------------------------------------------------------
+connectors:
+  enabled: true
+  enforce_secret_permissions: true
+  request_timeout_seconds: 15
+  user_agent: "mythical-ai/enterprise"
+  slack:
+    base_url: "https://slack.com/api"
+    token_file: "slack_token.txt"
+    allowed_hosts:
+      - "slack.com"
+  notion:
+    base_url: "https://api.notion.com/v1"
+    token_file: "notion_token.txt"
+    api_version: "2022-06-28"
+    allowed_hosts:
+      - "api.notion.com"
+  github:
+    base_url: "https://api.github.com"
+    token_file: "github_token.txt"
+    allowed_hosts:
+      - "api.github.com"

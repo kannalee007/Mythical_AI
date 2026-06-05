@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+  <h1>Overview</h1>
+  <span class="badge">Audit stream active</span>
+</div>
+
+<div class="grid cols-2">
+  <div class="card">
+    <h2>Run Summary</h2>
+    {% if use_sqlite %}
+    <div class="meta">Index: {{ store_path }}</div>
+    {% else %}
+    <div class="meta">Log: {{ log_path }}</div>
+    {% endif %}
+    <table class="table">
+      <tr><th>Status</th><th>Count</th></tr>
+      {% for status, count in summary.by_status.items() %}
+      <tr>
+        <td>{{ status }}</td>
+        <td>{{ count }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Compliance Signals</h2>
+    <div class="meta">Regulatory events: {{ compliance.total_events }}</div>
+    <table class="table">
+      <tr><th>Severity</th><th>Count</th></tr>
+      {% for severity, count in compliance.violations_by_severity.items() %}
+      <tr>
+        <td>{{ severity }}</td>
+        <td>{{ count }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+  <h2>Recent Runs</h2>
+  <table class="table">
+    <tr><th>Task ID</th><th>Status</th><th>Request</th><th>Updated</th></tr>
+    {% for task in tasks[:10] %}
+    <tr>
+      <td><a href="/tasks/{{ task.task_id }}?tenant={{ tenant_id }}">{{ task.task_id }}</a></td>
+      <td class="status {{ task.status }}">{{ task.status }}</td>
+      <td>{{ task.request }}</td>
+      <td>{{ task.updated_at|fmt_ts }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
