@@ -170,13 +170,54 @@ constitution:
       severity: "critical"
       exception_tag: null
 
+    - id: "C009"
+      name: "Harmful Step-by-Step Instructions"
+      description: "Responses must not provide detailed step-by-step instructions for harmful activities"
+      patterns:
+        - "(?i)(step.{0,10}by.{0,10}step).{0,50}(hack|exploit|attack|poison|synthesize|manufacture)"
+        - "(?i)(exact|specific|detailed).{0,30}(payload|command|synthesis route|recipe|instructions).{0,30}(hack|attack|poison|explosive|weapon)"
+        - "(?i)(here.{0,20}how to).{0,50}(bypass|exploit|hack|poison|manufacture|synthesize)"
+      severity: "high"
+      exception_tag: null
+
+    - id: "C010"
+      name: "Lethal Dosage Information"
+      description: "Responses must not provide specific lethal dosage information"
+      patterns:
+        - "(?i)(lethal|fatal).{0,20}dose.{0,20}(is|equals|of).{0,20}\\d"
+        - "(?i)ld50.{0,30}(is|equals|of).{0,20}\\d"
+        - "(?i)\\d+.{0,10}(mg|grams|micrograms).{0,20}(lethal|fatal|kills|death)"
+      severity: "critical"
+      exception_tag: null
+
+    - id: "C011"
+      name: "Exploit Code or Commands"
+      description: "Responses must not include working exploit commands targeting real systems"
+      patterns:
+        - "(?i)(msfconsole|metasploit|meterpreter).{0,50}(exploit|payload|shell)"
+        - "(?i)arpspoof.{0,30}(-i|-t).{0,30}(eth|wlan|target)"
+        - "(?i)(nc|netcat).{0,20}-e.{0,20}(/bin/sh|/bin/bash|cmd)"
+        - "(?i)sqlmap.{0,30}(--dump|--passwords|--dbs)"
+      severity: "critical"
+      exception_tag: null
+
+    - id: "C012"
+      name: "Weapon or Drug Synthesis"
+      description: "Responses must not provide synthesis routes for weapons or controlled substances"
+      patterns:
+        - "(?i)(synthesize|synthesis|manufacture|produce).{0,50}(fentanyl|heroin|meth|cocaine|TATP|RDX|PETN)"
+        - "(?i)(acetone.{0,30}peroxide|hydrogen peroxide.{0,30}acetone).{0,30}(mix|combine|react)"
+        - "(?i)(precursor|reagent).{0,30}(drug|explosive|weapon).{0,30}(available|buy|obtain)"
+      severity: "critical"
+      exception_tag: null
+
       # Principal Priority Ordering
   # When principles conflict, higher priority wins
   # 1 = highest priority (always wins)
   principle_priority:
     safety:
       priority: 1
-      rules: ["C001", "C002", "C004", "C005", "C007", "C008"]
+      rules: ["C001", "C002", "C004", "C005", "C007", "C008", "C009", "C010", "C011", "C012"]
       description: "Safety always wins over helpfulness"
     resource:
       priority: 2

@@ -48,6 +48,13 @@ def query_ollama(
     data = response.json()
     model_output = data.get("response", "")
 
+    # Thinking models (e.g. qwen3.5-mlx) route their chain-of-thought into a
+    # separate "thinking" field and leave "response" empty when num_predict is
+    # exhausted by the reasoning chain.  For non-JSON calls the thinking IS the
+    # useful content, so fall back to it rather than silently returning "".
+    if not model_output and not require_json:
+        model_output = data.get("thinking", "")
+
     if require_json:
         # Fail fast if the model does not return valid JSON.
         json.loads(model_output)

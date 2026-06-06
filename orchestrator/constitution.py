@@ -80,8 +80,16 @@ class ConstitutionNode:
         user_request: str,
         initial_response: str,
         constitutional_principles: list[dict],
+        critique_model: str = None,
     ) -> str:
         """Ask the LLM to identify constitutional violations in a response."""
+        # qwen3.5 variants are thinking models: they exhaust num_predict on their
+        # reasoning chain and leave response empty.  qwen2.5:7b is a standard
+        # model and is the preferred critique engine.  The weaver model is kept
+        # as a named fallback so callers can still override via critique_model.
+        _CRITIQUE_DEFAULT = "qwen2.5:7b"
+        model_to_use = critique_model or _CRITIQUE_DEFAULT
+
         principles_text = "\n".join(
             f"[{p['id']}] {p['name']}: {p['description']}"
             for p in constitutional_principles
@@ -96,14 +104,14 @@ class ConstitutionNode:
         )
         raw = query_ollama(
             prompt=prompt,
-            model=self.model,
+            model=model_to_use,
             system_prompt=(
                 "You are a constitutional safety critic. "
                 "Your job is to identify specific violations of constitutional principles in AI responses. "
                 "Be precise: name the principle, quote the problematic text, and explain why it violates the rule."
             ),
             temperature=0.2,
-            max_tokens=self.max_tokens,
+            max_tokens=1024,
             require_json=False,
         )
         return raw.strip()
