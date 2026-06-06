@@ -34,6 +34,7 @@ from orchestrator.utils import (
     query_ollama,
     write_file_safe,
 )
+from orchestrator.training_data import save_training_pair
 from orchestrator.weighted_resolution import detect_context, resolve as wcr_resolve
 
 # Maximum number of times we'll ask the LLM to repair code that failed at runtime.
@@ -184,6 +185,28 @@ class WeaverOrchestrator:
             if issue.get("severity") in ("high", "critical")
             and issue.get("type") != "bare_except"
         ]
+
+    # ------------------------------------------------------------------
+    # Critique-Revision (SL-CAI)
+    # ------------------------------------------------------------------
+
+    def revise_response(self, initial_response: str, critique: str) -> str:
+        """Ask the LLM to rewrite a response, fixing all violations identified in the critique."""
+        prompt = (
+            f"ORIGINAL RESPONSE:\n{initial_response}\n\n"
+            f"CRITIQUE (violations to fix):\n{critique}\n\n"
+            "Rewrite the response to fix all identified violations while remaining as helpful as possible. "
+            "Do not refuse outright — provide a revised response that addresses the user's intent safely."
+        )
+        raw = query_ollama(
+            prompt=prompt,
+            model=self.model,
+            system_prompt=self.system_prompt,
+            temperature=0.6,
+            max_tokens=self.max_tokens,
+            require_json=False,
+        )
+        return raw.strip()
 
     # ------------------------------------------------------------------
     # Planning
@@ -400,6 +423,57 @@ class WeaverOrchestrator:
             f"Helpfulness={wcr_result['weights']['helpfulness']} | "
             f"Amalgamated={wcr_result['amalgamated']}"
         )
+
+        # Step 2b: Critique-Revision loop (SL-CAI)
+        # Run only for educational or ambiguous context — skip malicious (already blocked by WCR)
+        wcr_context = wcr_result["context"]
+        initial_response = payload.get("response") or ""
+        if wcr_context in ("educational", "ambiguous") and initial_response:
+            _MAX_REVISIONS = 2
+            current_response = initial_response
+            final_critique = ""
+            for _rev_iter in range(_MAX_REVISIONS):
+                console.print(f"\n[bold magenta]Critique-Revision [{_rev_iter + 1}/{_MAX_REVISIONS}][/bold magenta]")
+                critique = self.constitution.critique_response(
+                    user_request=user_request,
+                    initial_response=current_response,
+                    constitutional_principles=self.constitution.rules,
+                )
+                final_critique = critique
+
+                # Count violations by looking for non-trivial critique content
+                violation_lines = [
+                    ln for ln in critique.splitlines()
+                    if ln.strip() and "no violation" not in ln.lower()
+                ]
+                console.print(
+                    f"[bold magenta][CRITIQUE][/bold magenta] Found {len(violation_lines)} violation line(s): "
+                    + (violation_lines[0][:120] if violation_lines else "none")
+                )
+
+                if not violation_lines or "no violation" in critique.lower():
+                    break  # nothing to fix
+
+                console.print("[bold magenta][REVISION][/bold magenta] Rewriting response...")
+                current_response = self.revise_response(current_response, critique)
+
+            # Save training pair regardless of whether revisions occurred
+            try:
+                save_training_pair(
+                    request=user_request,
+                    initial=initial_response,
+                    critique=final_critique,
+                    revised=current_response,
+                    context=wcr_context,
+                )
+                console.print("[bold magenta][TRAINING][/bold magenta] Saved pair to training_data.jsonl")
+            except Exception as _e:
+                console.print(f"[yellow]Warning: could not save training pair: {_e}[/yellow]")
+
+            # Surface the revised response back into the payload so downstream code uses it
+            if current_response != initial_response:
+                payload["response"] = current_response
+                wcr_result["final_response"] = current_response
 
         if not verdict.approved:
             if wcr_result['amalgamated']:

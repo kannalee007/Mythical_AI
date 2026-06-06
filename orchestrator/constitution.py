@@ -75,6 +75,39 @@ class ConstitutionNode:
             "9. Safety principles override helpfulness only when a violation is unambiguous and direct."
         )
 
+    def critique_response(
+        self,
+        user_request: str,
+        initial_response: str,
+        constitutional_principles: list[dict],
+    ) -> str:
+        """Ask the LLM to identify constitutional violations in a response."""
+        principles_text = "\n".join(
+            f"[{p['id']}] {p['name']}: {p['description']}"
+            for p in constitutional_principles
+        )
+        prompt = (
+            f"USER REQUEST:\n{user_request}\n\n"
+            f"RESPONSE TO CRITIQUE:\n{initial_response}\n\n"
+            f"CONSTITUTIONAL PRINCIPLES:\n{principles_text}\n\n"
+            "Does this response violate any of these principles? "
+            "List each specific violation and explain why. "
+            "If there are no violations, say 'No violations found.'"
+        )
+        raw = query_ollama(
+            prompt=prompt,
+            model=self.model,
+            system_prompt=(
+                "You are a constitutional safety critic. "
+                "Your job is to identify specific violations of constitutional principles in AI responses. "
+                "Be precise: name the principle, quote the problematic text, and explain why it violates the rule."
+            ),
+            temperature=0.2,
+            max_tokens=self.max_tokens,
+            require_json=False,
+        )
+        return raw.strip()
+
     def evaluate(self, plan_text: str, tags_in_plan: list[str]) -> ConstitutionalVerdict:
         """Run pattern-based and LLM-based evaluation."""
         console.rule("[bold cyan]Constitution Node[/bold cyan]")
