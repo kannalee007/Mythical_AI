@@ -155,9 +155,9 @@ constitution:
         - "(?i)(make (a bomb|explosives|chemical weapon|poison gas))"
         - "(?i)(instructions (to|for) (harm|kill|hurt|murder) (people|someone))"
         - "(?i)(create.*malware|write.*virus|build.*ransomware)"
-        - "(?i)(child.*abuse|cp|pedophil|sexual.*assault|rape)"
+        - "(?i)(child.*abuse|\\bcp\\b|pedophil|sexual.*assault|rape)"
         - "(?i)(hack (someone|my neighbor|their|his|her) (account|computer|phone|wifi))"
-        - "(?i)(steal (passwords|credentials|data|money) from)"
+        - "(?i)((how to|steps? to|guide to|ways? to) steal (passwords|credentials|data|money) from)"
       severity: "critical"
       exception_tag: null
 
